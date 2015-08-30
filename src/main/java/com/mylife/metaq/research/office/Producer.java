@@ -29,17 +29,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 
-/**
- * 消息发送者
- *
- * @author boyan
- * @Date 2011-5-17
- */
 public class Producer {
     public static void main(final String[] args) throws Exception {
-        // New session factory,强烈建议使用单例
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(Help.initMetaConfig());
-        // create producer,强烈建议使用单例
         final MessageProducer producer = sessionFactory.createProducer();
         // publish topic
         final String topic = "mytest";
@@ -56,9 +48,7 @@ public class Producer {
             } else {
                 System.out.println("Send message successfully,sent to " + sendResult.getPartition());
             }
-            System.out.println("发送耗时:" + ( System.currentTimeMillis() - start) + "毫秒");
         }
-
     }
 
 

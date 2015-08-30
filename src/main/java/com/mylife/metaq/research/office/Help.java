@@ -20,13 +20,6 @@ package com.mylife.metaq.research.office;
 import com.taobao.metamorphosis.client.MetaClientConfig;
 import com.taobao.metamorphosis.utils.ZkUtils.ZKConfig;
 
-
-/**
- * 
- * @author ÎÞ»¨
- * @since 2012-2-20 ÏÂÎç4:36:51
- */
-
 public class Help {
     public static MetaClientConfig initMetaConfig() {
         final MetaClientConfig metaClientConfig = new MetaClientConfig();
