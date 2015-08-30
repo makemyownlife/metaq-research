@@ -38,8 +38,6 @@ public class ZkNode {
         System.out.println(zkClient.exists(serverListPath));
         //创建服务id列表
 
-        String currentIp = "127.0.0.1";
-
 //        拥有了zookeeper如此强大的分布式协作系统后,我们可以很容易的实现大量的分布式应用,包括了分布式锁,分布式队列,分布式Barrier,双阶段提交等等. 这些应用可以帮我们改进很多复杂系统的协作方式,将这些系统的实现变得更加优雅而高效.鉴于篇幅,本文仅介绍分布式锁的实现.
 //                利用了前文提到的sequence nodes可以非常容易的实现分布式锁. 实现分布式锁的基本步骤如下(这些步骤需要在所有需要锁的客户端执行):
 //
