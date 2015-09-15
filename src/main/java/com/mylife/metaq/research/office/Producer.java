@@ -34,7 +34,7 @@ public class Producer {
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(Help.initMetaConfig());
         final MessageProducer producer = sessionFactory.createProducer();
         // publish topic
-        final String topic = "mytest";
+        final String topic = "meta-test";
         producer.publish(topic);
 
         String line = "lilin";
@@ -48,6 +48,7 @@ public class Producer {
             } else {
                 System.out.println("Send message successfully,sent to " + sendResult.getPartition());
             }
+            System.out.println("ºÄÊ±:" + (System.currentTimeMillis() - start));
         }
     }
 
