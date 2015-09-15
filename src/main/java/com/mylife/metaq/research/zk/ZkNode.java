@@ -11,7 +11,7 @@ import java.util.UUID;
  */
 public class ZkNode {
 
-    private static ZkClient zkClient = new ZkClient("localhost:2181");
+    private static ZkClient zkClient = new ZkClient("10.100.19.25:2181");
 
     public static void main(String[] args) {
 
