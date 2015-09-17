@@ -34,11 +34,11 @@ public class Producer {
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(Help.initMetaConfig());
         final MessageProducer producer = sessionFactory.createProducer();
         // publish topic
-        final String topic = "meta-test";
+        final String topic = "mytest";
         producer.publish(topic);
 
         String line = "lilin";
-        for(int i = 0 ; i < 100;i++) {
+        for(int i = 0 ; i < 1;i++) {
             long start = System.currentTimeMillis();
             // send message
             final SendResult sendResult = producer.sendMessage(new Message(topic, line.getBytes()));

@@ -26,7 +26,7 @@ public class AsyncConsumer {
         // subscribed topic
         final String topic = "mytest";
         // consumer group
-        final String group = "meta-example";
+        final String group = "mygroup";
         // create consumer,强烈建议使用单例
         ConsumerConfig consumerConfig = new ConsumerConfig(group);
         consumerConfig.setConsumeFromMaxOffset();
