@@ -11,6 +11,8 @@ import org.junit.Test;
 
 import java.io.File;
 
+import static org.junit.Assert.assertEquals;
+
 /**
  * 缓存相关的内容
  * User: zhangyong
@@ -61,6 +63,13 @@ public class MessageStoreUnit {
 
         final PutCommand cmd2 = new PutCommand(this.topic, this.partition, "world".getBytes(), null, 0, 0);
         final long id2 = this.idWorker.nextId();
+        this.messageStore.append(id2, cmd2, new AppendCallback() {
+            @Override
+            public void appendComplete(final Location location) {
+                System.out.println();
+            }
+        });
+        this.messageStore.flush();
     }
 
     @After
