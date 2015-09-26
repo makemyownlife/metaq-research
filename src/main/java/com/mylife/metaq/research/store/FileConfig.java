@@ -27,4 +27,8 @@ public class FileConfig {
         this.maxSegmentSize = maxSegmentSize;
     }
 
+    public String getDataPath() {
+        return dataPath;
+    }
+
 }

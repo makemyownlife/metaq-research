@@ -9,6 +9,6 @@ package com.mylife.metaq.research.store;
  */
 public interface FileAppendCallBack {
 
-
+    public void appendComplete(FileLocation fileLocation);
 
 }
