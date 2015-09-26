@@ -2,6 +2,8 @@ package com.mylife.metaq.research.store;
 
 import org.junit.Test;
 
+import java.io.IOException;
+
 /**
  * Created with IntelliJ IDEA.
  * User: zhangyong
@@ -12,7 +14,7 @@ import org.junit.Test;
 public class FileStoreTest {
 
     @Test
-    public void testAppend() {
+    public void testAppend() throws IOException {
         FileConfig fileConfig = new FileConfig();
         fileConfig.setDataPath("D:\\logs");
         String topic = "updateFeeTopic";

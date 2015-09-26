@@ -1,6 +1,7 @@
 package com.mylife.metaq.research.store;
 
 import com.taobao.gecko.core.util.LinkedTransferQueue;
+import com.taobao.metamorphosis.server.store.FileMessageSet;
 import com.taobao.metamorphosis.server.utils.SystemTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,7 +9,9 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -27,6 +30,8 @@ public class FileStore extends Thread implements Closeable {
 
     private volatile boolean closed = false;
 
+    private static final String FILE_SUFFIX = ".meta";
+
     private final Lock writeLock = new ReentrantLock();
 
     private final AtomicLong lastFlushTime;
@@ -42,7 +47,10 @@ public class FileStore extends Thread implements Closeable {
 
     private final String topic;
 
-    public FileStore(String topic, FileConfig fileConfig, FileDeletePolicy fileDeletePolicy) {
+     // 该片段的消息集合
+        com.taobao.metamorphosis.server.store.FileMessageSet fileMessageSet;
+
+    public FileStore(String topic, FileConfig fileConfig, FileDeletePolicy fileDeletePolicy) throws IOException {
         this.topic = topic;
         this.fileConfig = fileConfig;
         this.fileDeletePolicy = fileDeletePolicy;
@@ -58,6 +66,9 @@ public class FileStore extends Thread implements Closeable {
 
         this.lastFlushTime = new AtomicLong(SystemTimer.currentTimeMillis());
         this.loadSegments();
+
+
+
     }
 
     public void run() {
@@ -111,16 +122,49 @@ public class FileStore extends Thread implements Closeable {
         }
     }
 
-    private void loadSegments() {
+    private void loadSegments() throws IOException {
         final List<Segment> accum = new ArrayList<Segment>();
         final File[] ls = this.topicDir.listFiles();
         if (ls != null) {
-
+            for (final File file : ls) {
+                if (file.isFile() && file.toString().endsWith(FILE_SUFFIX)) {
+                    if (!file.canRead()) {
+                        throw new IOException("Could not read file " + file);
+                    }
+                    final String filename = file.getName();
+                    final long start = Long.parseLong(filename.substring(0, filename.length() - FILE_SUFFIX.length()));
+                }
+            }
         }
     }
 
     // 表示一个消息文件
     static class Segment {
+
+        // 该片段代表的offset
+        final long start;
+        // 对应的文件
+        final File file;
+
+         // 该片段的消息集合
+         FileCommandSet fileCommandSet;
+
+        public Segment(final long start, final File file) {
+            this(start, file, true);
+        }
+
+        public Segment(final long start, final File file, final boolean mutable) {
+            super();
+            this.start = start;
+            this.file = file;
+            logger.info("Created segment " + this.file.getAbsolutePath());
+            try {
+                final FileChannel channel = new RandomAccessFile(this.file, "rw").getChannel();
+                this.fileCommandSet = new FileCommandSet(channel, 0, channel.size(), mutable);
+            } catch (final IOException e) {
+                logger.error("初始化消息集合失败", e);
+            }
+        }
 
     }
 
