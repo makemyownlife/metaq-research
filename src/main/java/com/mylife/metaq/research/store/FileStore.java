@@ -1,7 +1,6 @@
 package com.mylife.metaq.research.store;
 
 import com.taobao.gecko.core.util.LinkedTransferQueue;
-import com.taobao.metamorphosis.server.store.FileMessageSet;
 import com.taobao.metamorphosis.server.utils.SystemTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +11,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,10 +47,7 @@ public class FileStore extends Thread implements Closeable {
 
     private final String topic;
 
-     // 该片段的消息集合
-        com.taobao.metamorphosis.server.store.FileMessageSet fileMessageSet;
-
-    public FileStore(String topic, FileConfig fileConfig, FileDeletePolicy fileDeletePolicy) throws IOException {
+    public FileStore(String topic, FileConfig fileConfig, FileDeletePolicy fileDeletePolicy, final long offsetIfCreate) throws IOException {
         this.topic = topic;
         this.fileConfig = fileConfig;
         this.fileDeletePolicy = fileDeletePolicy;
@@ -65,9 +62,7 @@ public class FileStore extends Thread implements Closeable {
         this.checkDir(topicDir);
 
         this.lastFlushTime = new AtomicLong(SystemTimer.currentTimeMillis());
-        this.loadSegments();
-
-
+        this.loadSegments(offsetIfCreate);
 
     }
 
@@ -122,7 +117,7 @@ public class FileStore extends Thread implements Closeable {
         }
     }
 
-    private void loadSegments() throws IOException {
+    private void loadSegments(final long offsetIfCreate) throws IOException {
         final List<Segment> accum = new ArrayList<Segment>();
         final File[] ls = this.topicDir.listFiles();
         if (ls != null) {
@@ -133,8 +128,15 @@ public class FileStore extends Thread implements Closeable {
                     }
                     final String filename = file.getName();
                     final long start = Long.parseLong(filename.substring(0, filename.length() - FILE_SUFFIX.length()));
+                    Segment segment = new Segment(start, file, false);
+                    accum.add(segment);
                 }
             }
+        }
+        if (accum.size() == 0) {
+            // 没有可用的文件，创建一个，索引从offsetIfCreate开始(这个应该二分查找法）
+            final File newFile = new File(this.topicDir, this.nameFromOffset(offsetIfCreate));
+            accum.add(new Segment(offsetIfCreate, newFile));
         }
     }
 
@@ -145,9 +147,8 @@ public class FileStore extends Thread implements Closeable {
         final long start;
         // 对应的文件
         final File file;
-
-         // 该片段的消息集合
-         FileCommandSet fileCommandSet;
+        // 该片段的消息集合
+        FileCommandSet fileCommandSet;
 
         public Segment(final long start, final File file) {
             this(start, file, true);
@@ -166,6 +167,28 @@ public class FileStore extends Thread implements Closeable {
             }
         }
 
+        public long size() {
+            return this.fileCommandSet.highWaterMark();
+        }
+
+        // 判断offset是否在本文件内
+        public boolean contains(final long offset) {
+            if (this.size() == 0 && offset == this.start || this.size() > 0 && offset >= this.start
+                    && offset <= this.start + this.size() - 1) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+    }
+
+    String nameFromOffset(final long offset) {
+        final NumberFormat nf = NumberFormat.getInstance();
+        nf.setMinimumIntegerDigits(20);
+        nf.setMaximumFractionDigits(0);
+        nf.setGroupingUsed(false);
+        return nf.format(offset) + FILE_SUFFIX;
     }
 
 }
