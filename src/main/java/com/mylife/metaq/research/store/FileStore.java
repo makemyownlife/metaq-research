@@ -160,7 +160,7 @@ public class FileStore extends Thread implements Closeable {
             logger.info("Created segment " + this.file.getAbsolutePath());
             try {
                 final FileChannel channel = new RandomAccessFile(this.file, "rw").getChannel();
-                this.fileCommandSet = new FileCommandSet(channel, 0, channel.size(), mutable);
+//              this.fileCommandSet = new FileCommandSet(channel, 0, channel.size(), mutable);
             } catch (final IOException e) {
                 logger.error("初始化消息集合失败", e);
             }
