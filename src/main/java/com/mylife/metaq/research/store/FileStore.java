@@ -47,9 +47,6 @@ public class FileStore extends Thread implements Closeable {
 
     private final String topic;
 
-     // 该片段的消息集合
-        com.taobao.metamorphosis.server.store.FileMessageSet fileMessageSet;
-
     public FileStore(String topic, FileConfig fileConfig, FileDeletePolicy fileDeletePolicy) throws IOException {
         this.topic = topic;
         this.fileConfig = fileConfig;
@@ -66,13 +63,9 @@ public class FileStore extends Thread implements Closeable {
 
         this.lastFlushTime = new AtomicLong(SystemTimer.currentTimeMillis());
         this.loadSegments();
-
-
-
     }
 
     public void run() {
-
     }
 
     @Override

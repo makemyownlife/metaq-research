@@ -4,6 +4,7 @@ import com.taobao.metamorphosis.network.GetCommand;
 import com.taobao.metamorphosis.server.network.SessionContext;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -16,8 +17,11 @@ import java.nio.ByteBuffer;
  */
 public class FileCommandSet implements CommandSet,Closeable {
 
+
+
     @Override
     public void close() throws IOException {
+
     }
 
     @Override
@@ -26,7 +30,7 @@ public class FileCommandSet implements CommandSet,Closeable {
     }
 
     @Override
-    public void write(GetCommand getCommand, SessionContext ctx) {
+    public void write(FileCommand fileCommand) {
 
     }
 
@@ -51,8 +55,9 @@ public class FileCommandSet implements CommandSet,Closeable {
     }
 
     @Override
-    public long getMessageCount() {
+    public long getCommandCount() {
         return 0;
     }
+
 
 }
