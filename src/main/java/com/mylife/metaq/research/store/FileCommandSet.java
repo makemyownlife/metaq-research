@@ -1,12 +1,14 @@
 package com.mylife.metaq.research.store;
 
-import com.taobao.metamorphosis.network.GetCommand;
-import com.taobao.metamorphosis.server.network.SessionContext;
+import com.taobao.metamorphosis.utils.MessageUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created with IntelliJ IDEA.
@@ -17,7 +19,29 @@ import java.nio.ByteBuffer;
  */
 public class FileCommandSet implements CommandSet,Closeable {
 
+    private final static Logger logger = LoggerFactory.getLogger(FileCommandSet.class);
 
+    private final FileChannel channel;
+
+    private final AtomicLong commandCount;
+
+    private final AtomicLong sizeInBytes;
+
+    private final AtomicLong highWaterMark; // 已经确保写入磁盘的水位
+
+    private final long offset; // 镜像offset
+
+    private boolean mutable; // 是否可变
+
+    public FileCommandSet(final FileChannel channel , final long offset , final long limit ,final boolean mutable) {
+        super();
+        this.channel = channel;
+        this.offset  = offset;
+        this.commandCount = new AtomicLong(0);
+        this.sizeInBytes = new AtomicLong(0);
+        this.highWaterMark = new AtomicLong(0);
+        this.mutable = mutable;
+    }
 
     @Override
     public void close() throws IOException {
@@ -58,6 +82,24 @@ public class FileCommandSet implements CommandSet,Closeable {
     public long getCommandCount() {
         return 0;
     }
+
+    //================================================  set get method =================================
+    public FileChannel getChannel() {
+        return channel;
+    }
+
+    public AtomicLong getSizeInBytes() {
+        return sizeInBytes;
+    }
+
+    public AtomicLong getHighWaterMark() {
+        return highWaterMark;
+    }
+
+    public long getOffset() {
+        return offset;
+    }
+
 
 
 }
