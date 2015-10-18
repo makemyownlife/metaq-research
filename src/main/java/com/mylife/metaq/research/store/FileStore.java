@@ -2,6 +2,7 @@ package com.mylife.metaq.research.store;
 
 import com.taobao.gecko.core.util.LinkedTransferQueue;
 import com.taobao.metamorphosis.server.store.FileMessageSet;
+import com.taobao.metamorphosis.server.store.Location;
 import com.taobao.metamorphosis.server.utils.SystemTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,8 +77,16 @@ public class FileStore extends Thread implements Closeable {
 
     @Override
     public void close() throws IOException {
-        if (closed) {
-            return;
+        this.closed = true;
+        this.interrupt();
+        try {
+            this.join(500);
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        for (final Segment segment : this.segments.view()) {
+            segment.fileCommandSet.close();
         }
     }
 
@@ -95,8 +104,9 @@ public class FileStore extends Thread implements Closeable {
         final int remainning = buffer.remaining();
         this.writeLock.lock();
         try {
-
-
+            final Segment cur = this.segments.last();
+            final long offset = cur.start + cur.fileCommandSet.append(buffer);
+            fileLocation = FileLocation.create(offset, remainning);
         } catch (Exception e) {
             logger.error("Append file failed", e);
             fileLocation = FileLocation.InvalidLocaltion;
@@ -151,17 +161,16 @@ public class FileStore extends Thread implements Closeable {
         if (accum.size() == 0) {
             //没有可用的文件的，创建一个，索引从offerSetIfCreate开始
             String nameFromOffest = this.nameFromOffset(offsetIfCreate);
-            logger.info("nameFromOffest: {} ");
+            logger.info("nameFromOffest: {} " ,nameFromOffest);
             final File newFile = new File(this.topicDir, nameFromOffest);
             Segment segment = new Segment(offsetIfCreate, newFile);
             accum.add(segment);
-        }
-        else {
+        } else {
 
         }
 
         this.segments = new SegmentList(accum.toArray(new Segment[accum.size()]));
-
+        logger.info("segments: {} ", segments);
     }
 
     // 表示一个消息文件
@@ -276,7 +285,6 @@ public class FileStore extends Thread implements Closeable {
         }
 
     }
-
 
 
 }

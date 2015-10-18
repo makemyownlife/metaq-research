@@ -45,7 +45,13 @@ public class FileCommandSet implements CommandSet,Closeable {
 
     @Override
     public void close() throws IOException {
-
+        if (!this.channel.isOpen()) {
+            return;
+        }
+        if (this.mutable) {
+            this.flush();
+        }
+        this.channel.close();
     }
 
     @Override
@@ -60,12 +66,23 @@ public class FileCommandSet implements CommandSet,Closeable {
 
     @Override
     public long append(ByteBuffer buff) throws IOException {
-        return 0;
+        if (!this.mutable) {
+            throw new UnsupportedOperationException("Immutable message set");
+        }
+        final long offset = this.sizeInBytes.get();
+        int sizeInBytes = 0;
+        while (buff.hasRemaining()) {
+            sizeInBytes += this.channel.write(buff);
+        }
+        this.sizeInBytes.addAndGet(sizeInBytes);
+        this.commandCount.incrementAndGet();
+        return offset;
     }
 
     @Override
     public void flush() throws IOException {
-
+        this.channel.force(true);
+        this.highWaterMark.set(this.sizeInBytes.get());
     }
 
     @Override
