@@ -1,8 +1,6 @@
 package com.mylife.metaq.research.store;
 
 import com.taobao.gecko.core.util.LinkedTransferQueue;
-import com.taobao.metamorphosis.server.store.FileMessageSet;
-import com.taobao.metamorphosis.server.store.Location;
 import com.taobao.metamorphosis.server.utils.SystemTimer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +15,6 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -50,8 +47,6 @@ public class FileStore extends Thread implements Closeable {
 
     private final String topic;
 
-    private SegmentList segments;
-
     public FileStore(String topic, FileConfig fileConfig, FileDeletePolicy fileDeletePolicy, final long offsetIfCreate) throws IOException {
         this.topic = topic;
         this.fileConfig = fileConfig;
@@ -77,17 +72,10 @@ public class FileStore extends Thread implements Closeable {
 
     @Override
     public void close() throws IOException {
-        this.closed = true;
-        this.interrupt();
-        try {
-            this.join(500);
+        if (closed) {
+            return;
         }
-        catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-        for (final Segment segment : this.segments.view()) {
-            segment.fileCommandSet.close();
-        }
+
     }
 
     //对外方法
@@ -104,9 +92,8 @@ public class FileStore extends Thread implements Closeable {
         final int remainning = buffer.remaining();
         this.writeLock.lock();
         try {
-            final Segment cur = this.segments.last();
-            final long offset = cur.start + cur.fileCommandSet.append(buffer);
-            fileLocation = FileLocation.create(offset, remainning);
+
+
         } catch (Exception e) {
             logger.error("Append file failed", e);
             fileLocation = FileLocation.InvalidLocaltion;
@@ -130,14 +117,6 @@ public class FileStore extends Thread implements Closeable {
         }
     }
 
-    String nameFromOffset(final long offset) {
-        final NumberFormat nf = NumberFormat.getInstance();
-        nf.setMinimumIntegerDigits(20);
-        nf.setMaximumFractionDigits(0);
-        nf.setGroupingUsed(false);
-        return nf.format(offset) + FILE_SUFFIX;
-    }
-
     private void loadSegments(final long offsetIfCreate) throws IOException {
         final List<Segment> accum = new ArrayList<Segment>();
         final File[] ls = this.topicDir.listFiles();
@@ -149,28 +128,16 @@ public class FileStore extends Thread implements Closeable {
                     }
                     final String filename = file.getName();
                     final long start = Long.parseLong(filename.substring(0, filename.length() - FILE_SUFFIX.length()));
-                    logger.info("start: {}", start);
-                    // 先作为不可变的加载进来
                     Segment segment = new Segment(start, file, false);
                     accum.add(segment);
                 }
             }
         }
-
-        //没有文件开始
         if (accum.size() == 0) {
-            //没有可用的文件的，创建一个，索引从offerSetIfCreate开始
-            String nameFromOffest = this.nameFromOffset(offsetIfCreate);
-            logger.info("nameFromOffest: {} " ,nameFromOffest);
-            final File newFile = new File(this.topicDir, nameFromOffest);
-            Segment segment = new Segment(offsetIfCreate, newFile);
-            accum.add(segment);
-        } else {
-
+            // 没有可用的文件，创建一个，索引从offsetIfCreate开始(这个应该二分查找法）
+            final File newFile = new File(this.topicDir, this.nameFromOffset(offsetIfCreate));
+            accum.add(new Segment(offsetIfCreate, newFile));
         }
-
-        this.segments = new SegmentList(accum.toArray(new Segment[accum.size()]));
-        logger.info("segments: {} ", segments);
     }
 
     // 表示一个消息文件
@@ -180,7 +147,6 @@ public class FileStore extends Thread implements Closeable {
         final long start;
         // 对应的文件
         final File file;
-
         // 该片段的消息集合
         FileCommandSet fileCommandSet;
 
@@ -201,90 +167,28 @@ public class FileStore extends Thread implements Closeable {
             }
         }
 
-    }
-
-    /**
-     * 不可变的segment list
-     *
-     * @author boyan
-     * @Date 2011-4-20
-     */
-    static class SegmentList {
-        AtomicReference<Segment[]> contents = new AtomicReference<Segment[]>();
-
-        public SegmentList(final Segment[] s) {
-            this.contents.set(s);
+        public long size() {
+            return this.fileCommandSet.highWaterMark();
         }
 
-        public SegmentList() {
-            super();
-            this.contents.set(new Segment[0]);
-        }
-
-        public void append(final Segment segment) {
-            while (true) {
-                final Segment[] curr = this.contents.get();
-                final Segment[] update = new Segment[curr.length + 1];
-                System.arraycopy(curr, 0, update, 0, curr.length);
-                update[curr.length] = segment;
-                if (this.contents.compareAndSet(curr, update)) {
-                    return;
-                }
+        // 判断offset是否在本文件内
+        public boolean contains(final long offset) {
+            if (this.size() == 0 && offset == this.start || this.size() > 0 && offset >= this.start
+                    && offset <= this.start + this.size() - 1) {
+                return true;
+            } else {
+                return false;
             }
-        }
-
-
-        public void delete(final Segment segment) {
-            while (true) {
-                final Segment[] curr = this.contents.get();
-                int index = -1;
-                for (int i = 0; i < curr.length; i++) {
-                    if (curr[i] == segment) {
-                        index = i;
-                        break;
-                    }
-
-                }
-                if (index == -1) {
-                    return;
-                }
-                final Segment[] update = new Segment[curr.length - 1];
-                // 拷贝前半段
-                System.arraycopy(curr, 0, update, 0, index);
-                // 拷贝后半段
-                if (index + 1 < curr.length) {
-                    System.arraycopy(curr, index + 1, update, index, curr.length - index - 1);
-                }
-                if (this.contents.compareAndSet(curr, update)) {
-                    return;
-                }
-            }
-        }
-
-
-        public Segment[] view() {
-            return this.contents.get();
-        }
-
-
-        public Segment last() {
-            final Segment[] copy = this.view();
-            if (copy.length > 0) {
-                return copy[copy.length - 1];
-            }
-            return null;
-        }
-
-
-        public Segment first() {
-            final Segment[] copy = this.view();
-            if (copy.length > 0) {
-                return copy[0];
-            }
-            return null;
         }
 
     }
 
+    String nameFromOffset(final long offset) {
+        final NumberFormat nf = NumberFormat.getInstance();
+        nf.setMinimumIntegerDigits(20);
+        nf.setMaximumFractionDigits(0);
+        nf.setGroupingUsed(false);
+        return nf.format(offset) + FILE_SUFFIX;
+    }
 
 }

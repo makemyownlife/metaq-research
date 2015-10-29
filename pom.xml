@@ -63,21 +63,6 @@
             <version>1.4.0</version>
         </dependency>
 
-        <!-- junit 需要 -->
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-core</artifactId>
-            <version>1.1</version>
-        </dependency>
-
-        <!-- 用于测试 redis 相关的性能 -->
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>2.7.3</version>
-        </dependency>
-
-
     </dependencies>
 
 </project>

@@ -16,9 +16,9 @@ public class FileStoreTest {
     @Test
     public void testAppend() throws IOException {
         FileConfig fileConfig = new FileConfig();
-        fileConfig.setDataPath("/home/zhangyong");
+        fileConfig.setDataPath("D:\\logs");
         String topic = "updateFeeTopic";
-        FileStore fileStore = new FileStore(topic, fileConfig, null);
+        FileStore fileStore = new FileStore(topic, fileConfig, null, 0);
         FileCommand fileCommand = new FileCommand(topic, "hello".getBytes());
         fileStore.append(1L, fileCommand, null);
     }

@@ -1,5 +1,6 @@
 package com.mylife.metaq.research.store;
 
+import com.taobao.metamorphosis.network.GetCommand;
 import com.taobao.metamorphosis.server.network.SessionContext;
 
 import java.io.IOException;
@@ -16,7 +17,7 @@ public interface CommandSet {
 
     public CommandSet slice(long offset, long limit) throws IOException;
 
-    public void write(FileCommand getCommand);
+    public void write(GetCommand getCommand, SessionContext ctx);
 
     public long append(ByteBuffer buff) throws IOException;
 
@@ -26,6 +27,6 @@ public interface CommandSet {
 
     public void read(final ByteBuffer bf) throws IOException;
 
-    public long getCommandCount();
+    public long getMessageCount();
 
 }

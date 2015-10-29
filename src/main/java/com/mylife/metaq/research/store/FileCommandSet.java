@@ -1,6 +1,7 @@
 package com.mylife.metaq.research.store;
 
-import com.taobao.metamorphosis.utils.MessageUtils;
+import com.taobao.metamorphosis.network.GetCommand;
+import com.taobao.metamorphosis.server.network.SessionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,13 +18,13 @@ import java.util.concurrent.atomic.AtomicLong;
  * Time: 18:57
  * To change this template use File | Settings | File Templates.
  */
-public class FileCommandSet implements CommandSet,Closeable {
+public class FileCommandSet implements CommandSet, Closeable {
 
-    private final static Logger logger = LoggerFactory.getLogger(FileCommandSet.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileCommandSet.class);
 
     private final FileChannel channel;
 
-    private final AtomicLong commandCount;
+    private final AtomicLong messageCount;
 
     private final AtomicLong sizeInBytes;
 
@@ -33,25 +34,43 @@ public class FileCommandSet implements CommandSet,Closeable {
 
     private boolean mutable; // 是否可变
 
-    public FileCommandSet(final FileChannel channel , final long offset , final long limit ,final boolean mutable) {
+    public FileCommandSet(final FileChannel channel, final long offset, final long limit, final boolean mutable) throws IOException {
         super();
         this.channel = channel;
-        this.offset  = offset;
-        this.commandCount = new AtomicLong(0);
+        this.offset = offset;
+        this.messageCount = new AtomicLong(0);
         this.sizeInBytes = new AtomicLong(0);
         this.highWaterMark = new AtomicLong(0);
         this.mutable = mutable;
+        if (mutable) {
+//            final long startMs = System.currentTimeMillis();
+//            final long truncated = this.recover();
+//            if (this.messageCount.get() > 0) {
+//                logger.info("Recovery succeeded in "
+//                        + (System.currentTimeMillis() - startMs) / 1000 + " seconds. "
+//                        + truncated + " bytes truncated.");
+//            }
+        } else {
+            try {
+                this.sizeInBytes.set(Math.min(channel.size(), limit) - offset);
+                this.highWaterMark.set(this.sizeInBytes.get());
+            } catch (final Exception e) {
+                logger.error("Set sizeInBytes error", e);
+            }
+        }
+    }
+
+    public FileChannel channel() {
+        return this.channel;
+    }
+
+    public long highWaterMark() {
+        return this.highWaterMark.get();
     }
 
     @Override
     public void close() throws IOException {
-        if (!this.channel.isOpen()) {
-            return;
-        }
-        if (this.mutable) {
-            this.flush();
-        }
-        this.channel.close();
+
     }
 
     @Override
@@ -60,29 +79,18 @@ public class FileCommandSet implements CommandSet,Closeable {
     }
 
     @Override
-    public void write(FileCommand fileCommand) {
+    public void write(GetCommand getCommand, SessionContext ctx) {
 
     }
 
     @Override
     public long append(ByteBuffer buff) throws IOException {
-        if (!this.mutable) {
-            throw new UnsupportedOperationException("Immutable message set");
-        }
-        final long offset = this.sizeInBytes.get();
-        int sizeInBytes = 0;
-        while (buff.hasRemaining()) {
-            sizeInBytes += this.channel.write(buff);
-        }
-        this.sizeInBytes.addAndGet(sizeInBytes);
-        this.commandCount.incrementAndGet();
-        return offset;
+        return 0;
     }
 
     @Override
     public void flush() throws IOException {
-        this.channel.force(true);
-        this.highWaterMark.set(this.sizeInBytes.get());
+
     }
 
     @Override
@@ -96,27 +104,8 @@ public class FileCommandSet implements CommandSet,Closeable {
     }
 
     @Override
-    public long getCommandCount() {
+    public long getMessageCount() {
         return 0;
     }
-
-    //================================================  set get method =================================
-    public FileChannel getChannel() {
-        return channel;
-    }
-
-    public AtomicLong getSizeInBytes() {
-        return sizeInBytes;
-    }
-
-    public AtomicLong getHighWaterMark() {
-        return highWaterMark;
-    }
-
-    public long getOffset() {
-        return offset;
-    }
-
-
 
 }

@@ -38,7 +38,7 @@ public class Producer {
         producer.publish(topic);
 
         String line = "lilin";
-        for(int i = 0 ; i < 100;i++) {
+        for(int i = 0 ; i < 1;i++) {
             long start = System.currentTimeMillis();
             // send message
             final SendResult sendResult = producer.sendMessage(new Message(topic, line.getBytes()));
@@ -48,8 +48,13 @@ public class Producer {
             } else {
                 System.out.println("Send message successfully,sent to " + sendResult.getPartition());
             }
-            System.out.println("cost time" + (System.currentTimeMillis() - start));
+            System.out.println("ºÄÊ±:" + (System.currentTimeMillis() - start));
         }
     }
 
+
+    private static String readLine(final BufferedReader reader) throws IOException {
+        System.out.println("Type a message to send:");
+        return reader.readLine();
+    }
 }
