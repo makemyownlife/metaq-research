@@ -23,6 +23,8 @@ import com.taobao.metamorphosis.client.MessageSessionFactory;
 import com.taobao.metamorphosis.client.MetaMessageSessionFactory;
 import com.taobao.metamorphosis.client.producer.MessageProducer;
 import com.taobao.metamorphosis.client.producer.SendResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,6 +32,9 @@ import java.io.InputStreamReader;
 
 
 public class Producer {
+
+   private static Logger logger = LoggerFactory.getLogger("cacheLog");
+
     public static void main(final String[] args) throws Exception {
         final MessageSessionFactory sessionFactory = new MetaMessageSessionFactory(Help.initMetaConfig());
         final MessageProducer producer = sessionFactory.createProducer();
@@ -38,17 +43,16 @@ public class Producer {
         producer.publish(topic);
 
         String line = "lilin";
-        for(int i = 0 ; i < 1;i++) {
+        for(int i = 0 ; i < 100;i++) {
             long start = System.currentTimeMillis();
             // send message
             final SendResult sendResult = producer.sendMessage(new Message(topic, line.getBytes()));
             // check result
             if (!sendResult.isSuccess()) {
-                System.err.println("Send message failed,error message:" + sendResult.getErrorMessage());
+                logger.info("Send message failed,error message:" + sendResult.getErrorMessage());
             } else {
-                System.out.println("Send message successfully,sent to " + sendResult.getPartition());
+                logger.info("Send message successfully,sent to " + sendResult.getPartition());
             }
-            System.out.println("ºÄÊ±:" + (System.currentTimeMillis() - start));
         }
     }
 

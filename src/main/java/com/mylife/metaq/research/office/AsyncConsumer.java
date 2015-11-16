@@ -48,6 +48,7 @@ public class AsyncConsumer {
         });
         // complete subscribe
         consumer.completeSubscribe();
+
     }
 
 }
